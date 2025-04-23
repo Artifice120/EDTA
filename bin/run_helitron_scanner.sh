@@ -33,40 +33,83 @@ if [ ! -z "$2" ];
 	then CPU=$2
 fi
 
+### remove incomplete files if the reverse compliment has not been drawn as a fasta ( logic being that this step takes less than a minute to complete so this particular file is unlikely to be incomplete )
+
+if [ ! -f  ${GENOME}.HelitronScanner.draw.rc ]; then
+
+	incomp=$( ls -lh -st "${GENOME}*" | head -n 1 | awk '{ print $10 }' | awk -F 'HelitronScanner.' '{print $2}' )
+ 	pathers=$( echo "${GENOME}.HelitronScanner.${incomp}" )
+	rm ${pathers}
+ 	
+fi
+
 ###########################
 ##   DIRECT ORIENTATION  ##
 ###########################
+
+### only run command if output does not exist
+
+if [ ! -f ${GENOME}.HelitronScanner.head ]; then
 
 ##find helitron heads
 ### will load each chromosome into memory, without splitting into 1Mb batches (-buffer_size option ==0) 
 java -Xmx${MEMGB}g -jar ${HSDIR}/HelitronScanner.jar scanHead -lcv_filepath ${HSDIR}/TrainingSet/head.lcvs -g $GENOME -buffer_size 0 -output ${GENOME}.HelitronScanner.head
 
+fi
+
+if [ ! -f ${GENOME}.HelitronScanner.tail ]; then
+
 ## helitron tails
 java -Xmx${MEMGB}g -jar ${HSDIR}/HelitronScanner.jar scanTail -lcv_filepath ${HSDIR}/TrainingSet/tail.lcvs -g $GENOME -buffer_size 0 -output ${GENOME}.HelitronScanner.tail
+
+fi
+
+if [ ! -f ${GENOME}.HelitronScanner.pairends ]; then
 
 ## pair the ends to generate possible helitrons
 java -Xmx${MEMGB}g -jar ${HSDIR}/HelitronScanner.jar pairends -head_score ${GENOME}.HelitronScanner.head -tail_score ${GENOME}.HelitronScanner.tail -output ${GENOME}.HelitronScanner.pairends
 
+fi
+
+if [ ! -f ${GENOME}.HelitronScanner.draw ]; then
+
 ## draw the helitrons into fastas
 java -Xmx${MEMGB}g -jar ${HSDIR}/HelitronScanner.jar draw -pscore ${GENOME}.HelitronScanner.pairends -g $GENOME -output ${GENOME}.HelitronScanner.draw -pure_helitron
- 
+
+fi
+
 ############################
 ##    REVERSE COMPLEMENT  ##
 ############################
+
+if [ ! -f  ${GENOME}.HelitronScanner.rc.head ]; then
 
 ##find helitron heads
 ### will load each chromosome into memory, without splitting into 1Mb batches (-buffer_size option ==0) 
 java -Xmx${MEMGB}g -jar ${HSDIR}/HelitronScanner.jar scanHead -lcv_filepath ${HSDIR}/TrainingSet/head.lcvs -g $GENOME -buffer_size 0 --rc -output ${GENOME}.HelitronScanner.rc.head
 
+fi
+
+if [ ! -f  ${GENOME}.HelitronScanner.rc.tail ]; then
+
 ## helitron tails
 java -Xmx${MEMGB}g -jar ${HSDIR}/HelitronScanner.jar scanTail -lcv_filepath ${HSDIR}/TrainingSet/tail.lcvs -g $GENOME -buffer_size 0 --rc -output ${GENOME}.HelitronScanner.rc.tail
+
+fi
+
+if [ ! -f  ${GENOME}.HelitronScanner.rc.pairends ]; then
 
 ## pair the ends to generate possible helitrons
 java -Xmx${MEMGB}g -jar ${HSDIR}/HelitronScanner.jar pairends -head_score ${GENOME}.HelitronScanner.rc.head -tail_score ${GENOME}.HelitronScanner.rc.tail --rc -output ${GENOME}.HelitronScanner.rc.pairends
 
+fi
+
+if [ ! -f  ${GENOME}.HelitronScanner.draw.rc ]; then
+
 ## draw the helitrons
 java -Xmx${MEMGB}g -jar ${HSDIR}/HelitronScanner.jar draw -pscore ${GENOME}.HelitronScanner.rc.pairends -g $GENOME -output ${GENOME}.HelitronScanner.draw.rc -pure_helitron
- 
+
+fi
 
 #########################
 ##   tab format output ##
